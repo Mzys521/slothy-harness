@@ -1,0 +1,1 @@
+"""Event contracts placeholder."""

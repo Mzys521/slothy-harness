@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --slothy-green: #60DD06;
+  --slothy-cream: #FCEAC9;
+  --slothy-brown: #95611F;
+  --slothy-black: #111210;
+  --slothy-dark: #1E201D;
+  --slothy-gray-700: #464841;
+  --slothy-gray-600: #68645D;
+  --slothy-gray-400: #AAA99F;
+  --slothy-gray-200: #E7E3DA;
+  --slothy-gray-100: #F2F1ED;
+  --slothy-off-white: #FAFAF8;
+  --slothy-white: #FFFFFF;
+  --slothy-green-50: #F2FFE8;
+  --slothy-green-100: #E2FFC9;
+  --slothy-green-300: #9CEF61;
+  --slothy-green-500: #60DD06;
+  --slothy-green-600: #51C000;
+  --slothy-green-700: #409A00;
+  --slothy-green-800: #2D7000;
+  --slothy-green-900: #204D00;
+  --slothy-brown-500: #95611F;
+  --slothy-brown-600: #7C5018;
+  --slothy-brown-700: #6F4512;
+  --slothy-brown-800: #633D0F;
+
+  --semantic-brand: var(--slothy-green);
+  --semantic-brand-secondary: var(--slothy-brown);
+  --semantic-brand-surface: var(--slothy-cream);
+  --semantic-bg: var(--slothy-off-white);
+  --semantic-surface: var(--slothy-white);
+  --semantic-text: var(--slothy-black);
+  --semantic-text-secondary: var(--slothy-gray-600);
+  --semantic-border: var(--slothy-gray-200);
+  --semantic-action: var(--slothy-green);
+  --semantic-action-text: var(--slothy-black);
+}
+
+@theme inline {
+  --color-brand: var(--semantic-brand);
+  --color-background: var(--semantic-bg);
+  --color-primary: var(--semantic-text);
+  --color-secondary: var(--semantic-text-secondary);
+  --color-surface: var(--semantic-surface);
+  --color-border: var(--semantic-border);
+}
+
+body {
+  margin: 0;
+}

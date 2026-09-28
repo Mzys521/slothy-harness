@@ -1,0 +1,9 @@
+* text=auto
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.webp binary
+docs/Project-Initialization-Guide.md -text
+docs/Theme-Color-Constraints.md -text
+logos/** -text

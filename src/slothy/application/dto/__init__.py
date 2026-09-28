@@ -1,0 +1,1 @@
+"""Application DTO placeholder."""
