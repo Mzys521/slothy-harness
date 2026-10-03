@@ -1,1 +1,1 @@
-"""Policy contracts placeholder."""
+"""策略契约占位。"""

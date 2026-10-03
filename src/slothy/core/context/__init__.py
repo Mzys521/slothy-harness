@@ -1,1 +1,1 @@
-"""Context contracts placeholder."""
+"""上下文契约占位。"""

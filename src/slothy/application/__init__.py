@@ -1,1 +1,1 @@
-"""Application boundary."""
+"""应用层边界。"""

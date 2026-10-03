@@ -1,1 +1,1 @@
-"""Persistence adapters placeholder."""
+"""持久化适配器占位。"""

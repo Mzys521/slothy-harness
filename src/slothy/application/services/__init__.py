@@ -1,1 +1,1 @@
-"""Application services placeholder."""
+"""应用层服务占位。"""

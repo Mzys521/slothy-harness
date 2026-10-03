@@ -1,1 +1,1 @@
-"""Slothy Python package."""
+"""Slothy Python 包。"""

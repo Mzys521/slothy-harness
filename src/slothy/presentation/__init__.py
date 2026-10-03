@@ -1,1 +1,1 @@
-"""Presentation boundary."""
+"""表现层边界。"""

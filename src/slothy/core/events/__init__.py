@@ -1,1 +1,1 @@
-"""Event contracts placeholder."""
+"""事件契约占位。"""

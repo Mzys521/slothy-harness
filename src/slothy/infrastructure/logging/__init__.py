@@ -1,1 +1,1 @@
-"""Logging adapters placeholder."""
+"""日志适配器占位。"""

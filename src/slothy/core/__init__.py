@@ -1,1 +1,1 @@
-"""Framework independent Harness core."""
+"""框架无关的 Harness 核心。"""

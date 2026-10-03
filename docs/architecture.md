@@ -15,4 +15,4 @@ Vue UI → frontend bridge → Presentation → Application → Core
 
 Core must not import Presentation, Application, pywebview, Vue, Tailwind, database implementations, operating-system APIs, or concrete LLM SDKs. Vue communicates through a dedicated bridge service and receives DTOs rather than Core objects.
 
-This is the initial boundary plan; runtime behavior is not implemented yet. See [Project Initialization Guide](Project-Initialization-Guide.md) for the full rationale.
+This is the initial boundary plan. The core agent loop and basic runtime state are implemented in `core/runtime`; model contracts remain in `core/model`, and tool contracts remain in `core/tools`. Desktop integration remains planned. See [Project Initialization Guide](Project-Initialization-Guide.md) for the full rationale.

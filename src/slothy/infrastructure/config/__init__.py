@@ -1,1 +1,1 @@
-"""Configuration adapters placeholder."""
+"""配置适配器占位。"""

@@ -1,1 +1,1 @@
-"""Agent contracts placeholder."""
+"""智能体契约占位。"""

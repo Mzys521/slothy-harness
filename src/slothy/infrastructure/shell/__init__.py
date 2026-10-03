@@ -1,1 +1,1 @@
-"""Shell adapters placeholder."""
+"""Shell 适配器占位。"""

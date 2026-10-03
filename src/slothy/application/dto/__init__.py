@@ -1,1 +1,1 @@
-"""Application DTO placeholder."""
+"""应用层 DTO 占位。"""

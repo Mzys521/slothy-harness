@@ -11,6 +11,9 @@ requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
     "pywebview>=5",
+    "openai>=3",
+    "python-dotenv>=1",
+    "pydantic>=2,<3",
 ]
 
 [tool.setuptools.packages.find]

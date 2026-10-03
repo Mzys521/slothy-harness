@@ -1,1 +1,1 @@
-"""Filesystem adapters placeholder."""
+"""文件系统适配器占位。"""

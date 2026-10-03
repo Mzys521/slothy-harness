@@ -1,1 +1,1 @@
-"""Application API placeholder."""
+"""应用层 API 占位。"""

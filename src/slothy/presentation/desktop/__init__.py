@@ -1,1 +1,1 @@
-"""Desktop presentation boundary."""
+"""桌面表现层边界。"""
