@@ -29,7 +29,12 @@ class FakeExecutor:
     def __init__(self) -> None:
         self.calls: list[tuple[ToolCall, ToolContext]] = []
 
-    def execute(self, call: ToolCall, context: ToolContext) -> ToolResult:
+    def execute(
+        self,
+        call: ToolCall,
+        context: ToolContext,
+        on_progress: object = None,
+    ) -> ToolResult:
         self.calls.append((call, context))
         return ToolResult(output={"value": 42})
 
@@ -118,9 +123,14 @@ class AgentRunnerTests(unittest.TestCase):
         model = FakeModel([ModelResult(tool_calls=[call])])
 
         class CancellingExecutor(FakeExecutor):
-            def execute(self, call: ToolCall, context: ToolContext) -> ToolResult:
+            def execute(
+                self,
+                call: ToolCall,
+                context: ToolContext,
+                on_progress: object = None,
+            ) -> ToolResult:
                 runtime.cancel()
-                return super().execute(call, context)
+                return super().execute(call, context, on_progress)
 
         executor = CancellingExecutor()
         with self.assertRaises(RunCancelledError):

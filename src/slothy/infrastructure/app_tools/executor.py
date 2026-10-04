@@ -6,7 +6,13 @@ from typing import Any
 from pydantic import ValidationError
 
 from slothy.core.model import ToolCall
-from slothy.core.tools import ToolContext, ToolExecutor, ToolRegistry, ToolResult
+from slothy.core.tools import (
+    ProgressCallback,
+    ToolContext,
+    ToolExecutor,
+    ToolRegistry,
+    ToolResult,
+)
 
 from .calculator import tool_list
 
@@ -23,8 +29,16 @@ class CalculatorToolExecutor(ToolExecutor):
         self.registry = registry
         self._allowed_handlers = {tool.name: tool.handler for tool in tool_list}
 
-    def execute(self, call: ToolCall, context: ToolContext) -> ToolResult:
-        """执行一次调用，并把可预期的错误作为工具结果返回。"""
+    def execute(
+        self,
+        call: ToolCall,
+        context: ToolContext,
+        on_progress: ProgressCallback | None = None,
+    ) -> ToolResult:
+        """执行一次调用，并把可预期的错误作为工具结果返回。
+
+        计算是瞬时操作，因此不接受 ``on_progress``：参数保留以符合执行器契约。
+        """
         registered = self.registry.get_tool(call.name)
         if (
             registered is None

@@ -31,6 +31,18 @@ This currently runs the Vue workspace. The desktop host and bridge are planned, 
 
 `main` is the baseline branch; `dev` is for ongoing integration. Suggested short-lived branch prefixes: `feature/`, `fix/`, `refactor/`, `docs/`, `chore/`, and `release/`.
 
+## Runtime demonstration and Application
+
+`main.py` is an independent validation program, not a product service. Run the assembled offline demo with:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -m slothy.main --demo
+```
+
+Real MiMo calls require explicit `--live`; use `--live --interactive` for a prompt loop. See [Demo composition](main-demo.md). Product hosts inject dependencies into `RuntimeService` and call `RuntimeAPI` from Presentation; see [Application API](application-api.md) and [ADR 0011](decisions/0011-application-api-and-demo-composition.md).
+
+[MCP and RAG](plans/mcp-rag-plan.md) are planned extensions only. Do not add their SDKs or empty interfaces before the corresponding contract and minimal use case are approved for implementation.
+
 ## Documentation
 
 Record consequential decisions in `docs/decisions/` using numbered names such as `0001-project-architecture.md`. Follow [Theme Color Constraints](Theme-Color-Constraints.md) for brand colors and semantic tokens.

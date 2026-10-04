@@ -59,7 +59,9 @@ class FakeExecutor:
     def __init__(self) -> None:
         self.calls: list[tuple] = []
 
-    def execute(self, call: object, context: ToolContext) -> ToolResult:
+    def execute(
+        self, call: object, context: ToolContext, on_progress: object = None
+    ) -> ToolResult:
         self.calls.append((call, context))
         return ToolResult(output={"value": 42})
 

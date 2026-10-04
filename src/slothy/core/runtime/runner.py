@@ -1,28 +1,59 @@
-"""智能体循环，协调模型响应与受控的工具执行。"""
+"""智能体循环：通过模块入口编排模型与工具，控制 Run 的生命周期。"""
 
-from typing import Any
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from slothy.core.context import Context
 from slothy.core.model import ModelProvider
-from slothy.core.tools import ToolContext, ToolExecutor, ToolRegistry
-from .state import Run, RunCancelledError
+from slothy.core.policy import Policy, PolicyEngine
+from slothy.core.policy.resilience import resolve_policy
+from slothy.core.tools import ApprovalDecision, ToolContext, ToolExecutor, ToolRegistry
 
+# 保留既有指标常量的导入位置；实际观测逻辑归 observation 模块。
+from .observation import (
+    RUN_DURATION_METRIC as RUN_DURATION_METRIC,
+    STEP_DURATION_METRIC as STEP_DURATION_METRIC,
+)
 from .runner_models import RunnerResult
+from .state import Run
+from .execution import RunExecution
+from .snapshot import RuntimeSnapshot, SnapshotStore
+
+if TYPE_CHECKING:
+    from slothy.core.events import EventSink
 
 
 class AgentRunner:
+    """只管理运行和步骤；消息、模型、工具及策略细节由所属模块处理。"""
+
     def __init__(
         self,
         model: ModelProvider,
         registry: ToolRegistry,
         executor: ToolExecutor,
-        max_steps: int = 8,
+        max_steps: int | None = None,
+        policy: Policy | PolicyEngine | None = None,
+        context: Context | None = None,
+        token_budget: int | None = None,
+        snapshot_store: SnapshotStore | None = None,
     ) -> None:
-        if max_steps < 1:
-            raise ValueError("max_steps must be at least 1")
         self.model = model
         self.registry = registry
         self.executor = executor
-        self.max_steps = max_steps
+        self.policy = resolve_policy(policy, max_steps)
+        self.max_steps = self.policy.limits.max_steps
+        self.context = context
+        self.token_budget = token_budget
+        self.snapshot_store = snapshot_store
+        self.latest_snapshot: RuntimeSnapshot | None = None
+        self._current_run: Run | None = None
+        self._snapshot_stores: dict[str, SnapshotStore] = {}
+
+    @property
+    def current_run(self) -> Run | None:
+        """当前驱动的 Run；恢复成功后指向新一代对象，供宿主控制执行。"""
+        return self._current_run
 
     def run(
         self,
@@ -30,66 +61,25 @@ class AgentRunner:
         *,
         context: ToolContext,
         runtime: Run | None = None,
+        events: EventSink | None = None,
     ) -> RunnerResult:
-        """运行直到模型给出回答或达到模型调用次数上限。
+        """运行至回答或策略终止；失败处置归策略，终态仍由 Run 维护。"""
+        return RunExecution.start(
+            self, user_input, context, runtime, events,
+        ).drive()
 
-        注入的执行器负责校验与权限决策。运行器只将请求的调用传递给它，
-        并在下一轮对话中将结果返回给模型。
-        """
-        state = runtime or Run(run_id=context.run_id, max_steps=self.max_steps)
-        if state.run_id != context.run_id or state.max_steps != self.max_steps:
-            raise ValueError("运行时状态与当前执行上下文不匹配")
-        state.start()
+    def resume(
+        self, snapshot: RuntimeSnapshot, *, context: ToolContext,
+        approval: ApprovalDecision | None = None, events: EventSink | None = None,
+    ) -> RunnerResult:
+        """从快照创建新 Run 并继续；审批只接受宿主显式提交的决定。"""
+        return RunExecution.restore(
+            self, snapshot, context, events, approval,
+        ).drive()
 
-        messages: list[dict[str, Any]] = [{"role": "user", "content": user_input}]
-
-        try:
-            tools = self.registry.definitions()
-            for step in range(1, self.max_steps + 1):
-                state.begin_step(step)
-                response = self.model.generate(messages, tools=tools)
-                state.check_active()
-                if not response.tool_calls:
-                    state.finish_step()
-                    state.complete()
-                    return RunnerResult(output=response.text or "", steps=step, run=state)
-
-                if step == self.max_steps:
-                    raise RuntimeError(f"Exceeded max steps ({self.max_steps})")
-
-                state.wait_for_tool()
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": response.text or "",
-                        "tool_calls": [
-                            {
-                                "call_id": call.call_id,
-                                "name": call.name,
-                                "arguments": call.arguments,
-                            }
-                            for call in response.tool_calls
-                        ],
-                    }
-                )
-
-                for call in response.tool_calls:
-                    state.begin_tool_call(call.call_id)
-                    tool_result = self.executor.execute(call, context)
-                    state.check_active()
-                    messages.append(
-                        {
-                            "role": "tool",
-                            "call_id": call.call_id,
-                            "content": tool_result.to_model_output(),
-                        }
-                    )
-                    state.wait_for_tool()
-                state.finish_step()
-
-            raise AssertionError("The step loop must return or raise")
-        except RunCancelledError:
-            raise
-        except Exception:
-            state.fail()
-            raise
+    def cancel_snapshot(
+        self, snapshot: RuntimeSnapshot, *, context: ToolContext,
+        events: EventSink | None = None,
+    ) -> RunnerResult:
+        """可信宿主取消尚未接管的快照；不会调用模型或工具。"""
+        return RunExecution.cancel_saved(self, snapshot, context, events)

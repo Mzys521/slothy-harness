@@ -7,6 +7,7 @@ from typing import Any, Callable
 from pydantic import BaseModel
 
 from .tool_definition import ToolDefinition
+from .replay import ReplaySafety
 
 
 def tool_from_pydantic(
@@ -16,6 +17,8 @@ def tool_from_pydantic(
     args_model: type[BaseModel],
     handler: Callable[..., Any],
     timeout_seconds: float | None = None,
+    replay_safety: ReplaySafety = ReplaySafety.UNSPECIFIED,
+    execution_version: str = "1",
 ) -> ToolDefinition:
     """组合参数模型与处理函数，生成供注册表接收的工具对象。
 
@@ -51,4 +54,6 @@ def tool_from_pydantic(
         args_model=args_model,
         handler=handler,
         timeout_seconds=float(timeout_seconds) if timeout_seconds is not None else None,
+        replay_safety=replay_safety,
+        execution_version=execution_version,
     )

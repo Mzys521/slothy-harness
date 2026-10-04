@@ -4,7 +4,7 @@ from math import pow as real_pow
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from slothy.core.tools import ToolDefinition, tool_from_pydantic
+from slothy.core.tools import ReplaySafety, ToolDefinition, tool_from_pydantic
 
 
 class AddArgs(BaseModel):
@@ -84,6 +84,7 @@ add_tool: ToolDefinition = tool_from_pydantic(
     description="计算两个浮点数的和",
     args_model=AddArgs,
     handler=add,
+    replay_safety=ReplaySafety.IDEMPOTENT,
     timeout_seconds=2.0,
 )
 
@@ -92,6 +93,7 @@ subtract_tool: ToolDefinition = tool_from_pydantic(
     description="计算两个浮点数的差，即 a 减去 b",
     args_model=SubtractArgs,
     handler=subtract,
+    replay_safety=ReplaySafety.IDEMPOTENT,
     timeout_seconds=2.0,
 )
 
@@ -100,6 +102,7 @@ multiply_tool: ToolDefinition = tool_from_pydantic(
     description="计算两个浮点数的乘积",
     args_model=MultiplyArgs,
     handler=multiply,
+    replay_safety=ReplaySafety.IDEMPOTENT,
     timeout_seconds=2.0,
 )
 
@@ -108,6 +111,7 @@ divide_tool: ToolDefinition = tool_from_pydantic(
     description="计算两个浮点数的商，即 a 除以 b；b 不能为 0",
     args_model=DivideArgs,
     handler=divide,
+    replay_safety=ReplaySafety.IDEMPOTENT,
     timeout_seconds=2.0,
 )
 
@@ -116,6 +120,7 @@ power_tool: ToolDefinition = tool_from_pydantic(
     description="计算浮点数 a 的 b 次幂，结果必须为实数",
     args_model=PowerArgs,
     handler=power,
+    replay_safety=ReplaySafety.IDEMPOTENT,
     timeout_seconds=2.0,
 )
 

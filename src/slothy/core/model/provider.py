@@ -37,7 +37,12 @@ class ModelProvider(ABC):
             messages: 提供方中立格式的对话消息，
                 每一项通常包含 ``role`` 和 ``content``。
             **kwargs: 可选的生成参数，例如 ``temperature``、
-                ``max_tokens`` 或 ``stream``。
+                ``max_tokens`` 或 ``stream``。模型模块的调用入口还会传入
+                ``on_chunk``：实现流式响应的提供方应在收到文本增量时调用它，
+                以便模型模块发出 ``TokenChunk`` 事件；不支持流式的提供方
+                应忽略该参数而不是把它转发给模型服务。
+                ``timeout`` 是策略计算的剩余秒数，支持时限的适配器应据此
+                配置 I/O 超时；适配器不应自行重试，重试由 Policy 管理。
 
         返回：
             模型生成的提供方中立的 :class:`ModelResult`。

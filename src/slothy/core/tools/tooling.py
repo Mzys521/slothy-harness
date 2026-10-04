@@ -7,6 +7,7 @@ from pydantic import ConfigDict, create_model
 
 from .factory import tool_from_pydantic
 from .tool_definition import ToolDefinition
+from .replay import ReplaySafety
 
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -23,6 +24,8 @@ def tool(
     name: str | None = None,
     description: str | None = None,
     timeout_seconds: float | None = None,
+    replay_safety: ReplaySafety = ReplaySafety.UNSPECIFIED,
+    execution_version: str = "1",
 ) -> Callable[[F], F]: ...
 
 
@@ -32,6 +35,8 @@ def tool(
     name: str | None = None,
     description: str | None = None,
     timeout_seconds: float | None = None,
+    replay_safety: ReplaySafety = ReplaySafety.UNSPECIFIED,
+    execution_version: str = "1",
 ) -> F | Callable[[F], F]:
     """从函数注解生成参数模型，并在函数上附加工具定义。
 
@@ -66,6 +71,8 @@ def tool(
             args_model=model,
             handler=handler,
             timeout_seconds=timeout_seconds,
+            replay_safety=replay_safety,
+            execution_version=execution_version,
         )
         setattr(handler, TOOL_DEFINITION_ATTRIBUTE, definition)
         return handler

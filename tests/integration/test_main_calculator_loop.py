@@ -44,7 +44,8 @@ class MainCalculatorLoopTests(unittest.TestCase):
         ]
         model = ScriptedModel([*responses, ModelResult(text="结果是 458.8")])
 
-        result = run_calculation("计算示例算式", model=model)
+        # 关闭命令行工具回调，保持测试输出只包含 unittest 结果。
+        result = run_calculation("计算示例算式", model=model, watch_tools=False)
 
         self.assertEqual((result.output, result.steps), ("结果是 458.8", 7))
         self.assertEqual(result.run.status, RunStatus.COMPLETED)
