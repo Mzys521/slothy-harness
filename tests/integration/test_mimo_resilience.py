@@ -1,6 +1,7 @@
 """MiMo SDK 异常映射、时限和策略重试集成；不访问网络。"""
 
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 from openai import APIConnectionError, APIStatusError, APITimeoutError
@@ -53,6 +54,7 @@ class Completions:
         return response()
 
 
+@patch.dict("os.environ", {"MIMO_API_KEY": "placeholder-for-tests"}, clear=True)
 class MimoResilienceTests(unittest.TestCase):
     def provider(self, completions):
         provider = MimoProvider(

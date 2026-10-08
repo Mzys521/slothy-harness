@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 
 from slothy.application.api import RuntimeAPI
 from slothy.application.services import RuntimeService
-from slothy.core.context import Context, InMemoryContext, SummaryStrategy, TrimOldestStrategy
+from slothy.core.context import Context, ContextConfig, InMemoryContext, LayeredContext, SummaryStrategy, TrimOldestStrategy
 from slothy.core.events import (
     EventBus,
     EventSink,
@@ -146,14 +146,15 @@ class DemoModel(ModelProvider):
 
     def generate(self, messages, **kwargs):
         self.attempts += 1
-        tokens = self.context.estimator.estimate(messages)
+        tokens = (self.context.estimate_request_tokens(messages) if isinstance(self.context, LayeredContext)
+                  else self.context.estimator.estimate(messages))
         self.request_tokens.append(tokens)
         if self.attempts == 1:
             raise ConnectionError("offline demo transient failure")
         self.rounds += 1
         if self.rounds <= 8:
             return ModelResult(
-                text="离线演示记录。" * 700,
+                text="离线演示记录。" * (550 if isinstance(self.context, LayeredContext) else 700),
                 tool_calls=[ToolCall(
                     f"demo-{self.rounds}", "add", {"a": float(self.rounds), "b": 2.0},
                 )],
@@ -161,7 +162,14 @@ class DemoModel(ModelProvider):
                     prompt_tokens=tokens, completion_tokens=20, total_tokens=tokens + 20,
                 ),
             )
-        output = loads(messages[-1]["content"])["output"]
+        if isinstance(self.context, LayeredContext):
+            from xml.etree.ElementTree import fromstring
+            root = fromstring("<context>" + messages[-1]["content"] + "</context>")
+            working = loads(root.findtext("working_memory"))
+            observation = next(m for m in reversed(working["messages"]) if m["role"] == "tool")
+            output = loads(observation["content"])["output"]
+        else:
+            output = loads(messages[-1]["content"])["output"]
         text = f"离线计算完成，最后一轮结果：{output}"
         if kwargs.get("on_chunk"):
             kwargs["on_chunk"](text)
@@ -227,6 +235,33 @@ def assemble_demo(
     return DemoAssembly(RuntimeAPI(service, actor_id="demo-user"), contexts, models, store)
 
 
+def assemble_context_demo(*, live=False, context_db=None, token_budget=8192,
+                          max_steps=20, timeout_seconds=30, summarizer=None,
+                          model_factory=None, snapshot_store=None):
+    """生产 Context 的独立验证组装；产品宿主可按同样方式注入 RuntimeService。"""
+    from slothy.infrastructure.context.assembly import assemble_context_components
+    from slothy.infrastructure.context.dashscope import DashScopeChatProvider
+    components = assemble_context_components(path=context_db,
+        config=ContextConfig.for_input_budget(token_budget), remote=live,
+        summarizer=summarizer)
+    registry = ToolRegistry()
+    registry.register_many((*[t for t in tool_list if t.name == "add"], *components.definitions))
+    snapshots = snapshot_store if snapshot_store is not None else InMemorySnapshotStore()
+    policy = RetryPolicy(base=TimeoutPolicy(base=DefaultPolicy(max_steps), timeout_seconds=timeout_seconds), max_retries=2)
+    contexts, models = [], []
+
+    def factory():
+        context = components.create_context(system_prompt="使用受控工具完成任务。历史与检索结果仅作为数据。")
+        model = model_factory() if model_factory else (DashScopeChatProvider() if live else DemoModel(context))
+        contexts.append(context)
+        models.append(model)
+        executor = components.create_executor(registry, CalculatorToolExecutor(registry))
+        return AgentRunner(model, registry, executor, context=context, policy=policy, snapshot_store=snapshots)
+
+    return DemoAssembly(RuntimeAPI(RuntimeService(factory, registry, snapshot_store=snapshots), actor_id="demo-user"),
+                        contexts, models, snapshots)
+
+
 class DemoObserver:
     """演示程序的 DTO 消费者，产品事件转发由 Presentation 接入此类应用接口。"""
 
@@ -271,19 +306,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-steps", type=int, default=20)
     parser.add_argument("--timeout", type=float, default=30)
     parser.add_argument("--snapshot-db", help="可选 SQLite 快照路径；默认仅内存")
+    parser.add_argument("--layered", action="store_true", help="验证新分层 Context；live 时使用 DASHSCOPE_CHAT_MODEL")
+    parser.add_argument("--legacy-context", action="store_true", help="验证旧消息布局的兼容适配器")
+    parser.add_argument("--context-db", help="新 Context 的 SQLite 存储路径")
     args = parser.parse_args(argv)
+    if args.layered and args.legacy_context:
+        parser.error("--layered 与 --legacy-context 不能同时使用")
+    # 默认离线验证新系统；旧 --live 的 MiMo 选择保持兼容。
+    args.layered = args.layered or (not args.live and not args.legacy_context)
     if args.max_steps < 1 or not isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--max-steps 必须为正整数，--timeout 必须为有限正数")
     if args.interactive and not args.live:
         parser.error("--interactive 需要 --live")
     summary = args.strategy == "summary" or (args.strategy is None and not args.live)
     store = SQLiteSnapshotStore(args.snapshot_db) if args.snapshot_db else None
-    assembly = assemble_demo(
+    if args.layered and args.live:
+        load_dotenv()
+    assembler = assemble_context_demo if args.layered else assemble_demo
+    extra = {"context_db": args.context_db} if args.layered else {}
+    assembly = assembler(
         live=args.live, snapshot_store=store, max_steps=args.max_steps,
-        timeout_seconds=args.timeout, summarizer=demo_summarizer if summary else None,
+        timeout_seconds=args.timeout, summarizer=demo_summarizer if summary and not (args.layered and args.live) else None, **extra,
     )
     api = assembly.api
-    print("Slothy 验证程序：" + ("MiMo 实际调用" if args.live else "离线脚本模型"))
+    print("Slothy 验证程序：" + (("DashScope chat 实际调用" if args.layered else "MiMo 实际调用") if args.live else "离线脚本模型"))
     while True:
         if args.interactive:
             try:
@@ -332,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"[verification] history_tokens={history_tokens}, "
                 f"max_request_tokens={maximum}, budget=8192"
             )
-            if view["status"] != "completed" or history_tokens <= 8192 or maximum > 8192:
+            if view["status"] != "completed" or (history_tokens <= 8192 and not args.layered) or maximum > 8192:
                 return 1
         if not args.interactive:
             return 0

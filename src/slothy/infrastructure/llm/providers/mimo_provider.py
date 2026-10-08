@@ -21,10 +21,13 @@ class MimoProvider(ModelProvider):
         base_url: str | None = None,
         model: str | None = None,
     ) -> None:
-        resolved_key = os.getenv("MIMO_API_KEY") or api_key or ""
+        # api_key 参数保留签名兼容，但认证值只从环境读取。
+        resolved_key = os.getenv("MIMO_API_KEY") or ""
         resolved_url = os.getenv("MIMO_BASE_URL") or base_url or ""
         resolved_model = os.getenv("MIMO_MODEL") or model or ""
-        super().__init__(resolved_key, resolved_url, resolved_model)
+        if any(kind in resolved_model.lower() for kind in ("embedding", "rerank")):
+            raise ValueError("文本生成不能使用 embedding 或 rerank 模型")
+        super().__init__(None, resolved_url, resolved_model)
         self.client = OpenAI(
             api_key=resolved_key, base_url=resolved_url, max_retries=0
         )

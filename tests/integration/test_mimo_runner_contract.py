@@ -2,6 +2,7 @@
 
 import json
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 from pydantic import BaseModel, ConfigDict
@@ -66,6 +67,7 @@ class FakeExecutor:
         return ToolResult(output={"value": 42})
 
 
+@patch.dict("os.environ", {"MIMO_API_KEY": "placeholder-for-tests"}, clear=True)
 class MimoRunnerContractTests(unittest.TestCase):
     def test_provider_converts_complete_tool_round_trip(self) -> None:
         provider = MimoProvider(

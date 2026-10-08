@@ -230,3 +230,7 @@ Application 已提供 Core 事件到 JSON DTO 的显式映射、有限历史缓�
 观察者抛出的异常不会影响运行结果：事件总线会隔离该异常、继续调用其他处理器，并把 `EventDeliveryFailure`（事件类型、序列号、异常类名、消息）记入 `EventBus.failures`。运行本身不会因此失败或重试，监控故障需要外层主动检查 `failures`。
 
 没有接收端时运行器不产生任何事件，行为与不传 `events` 的 0.1.0 一致。
+
+## 分层 Context 指标
+
+LayeredContext 的压缩继续发 ContextCompressed，strategy 为 layered，preview 只含移出/缩短计数。每个模型请求前额外发出 Metric：context.input_tokens（含原生工具定义）、context.memory_topk、context.summary_failures。计数来自 Context 的安全报告，不包含历史、查询、任务状态或工具原文；应用沿用已有 Metric DTO 映射。层计数和检索通道分类可由外层 observer 消费，观察者失败不改变运行结果。旧适配器没有新报告时，事件序列保持兼容。

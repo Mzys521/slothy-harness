@@ -1,5 +1,7 @@
 # main 独立组装演示
 
+2026-10-05：默认离线程序已切换到 `assemble_context_demo()`，使用 LayeredContext、SQLite 外化存储和受控记忆工具；`--layered --context-db .slothy/context.sqlite3` 显式选择同一模式。演示只注册 add 与两项记忆工具以符合默认 schema 子预算。`--legacy-context` 和公开 `assemble_demo()` 保留原消息布局验证；下表描述此兼容组装。真实 MiMo 的原 `--live` 选择保持兼容，`--layered --live` 则使用独立 DASHSCOPE_CHAT_MODEL。配置与迁移见 [Context 系统](context-system.md)。
+
 `src/slothy/main.py` 是快速验证程序和演示组装根。正式接口位于 [Application](application-api.md)，产品代码不得导入 main。现有 `api/`、`services/`、`dto/` 以及 Core / Infrastructure 目录保持原结构。
 
 ## 离线运行

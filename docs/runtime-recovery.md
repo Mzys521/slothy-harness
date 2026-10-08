@@ -166,10 +166,10 @@ result = runner.resume(result.snapshot, context=context, approval=decision)
 未提交决定时继续等待。错误 ID、旧版本或已消费决定被拒绝。批准后再次中断且
 结果不明时必须重新校验或重新审批；历史审计不授予永久权限。
 `actor` 字符串用于审计，不提供身份认证，宿主仍负责鉴权和绑定当前待审批请求。
-桌面审批界面尚未接入。既有 `PolicyVerdict.ASK` 仍按规则拦截处理，此等待流程
+桌面原型已接入本次尝试的批准、拒绝与独立恢复操作，见[桌面说明](desktop-ui.md)。既有 `PolicyVerdict.ASK` 仍按规则拦截处理，此等待流程
 针对工具执行安全，未改变通用策略 ASK 的语义。
 
-产品宿主现在可通过 [Application API](application-api.md) 分别查询审批、记录批准/拒绝、恢复执行。身份由可信宿主绑定，审批记录和恢复为独立操作；桌面桥接仍需后续接入。Core 的 `current_run` 跟踪新一代执行，`request_cancel()` 由驱动线程在检查点处理；`cancel_snapshot()` 可在不调用模型/工具的情况下取消已保存 Run。
+产品宿主现在可通过 [Application API](application-api.md) 分别查询审批、记录批准/拒绝、恢复执行。身份由可信宿主绑定，审批记录和恢复为独立操作；桌面桥接复用这些接口。Core 的 `current_run` 跟踪新一代执行，`request_cancel()` 由驱动线程在检查点处理；`cancel_snapshot()` 可在不调用模型/工具的情况下取消已保存 Run。
 
 ## 验证与边界
 

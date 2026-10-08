@@ -5,6 +5,7 @@
 
 import json
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 from slothy.core.runtime import AgentRunner
@@ -73,6 +74,7 @@ def build_provider(rounds: list[list]) -> tuple[MimoProvider, FakeStreamCompleti
     return provider, completions
 
 
+@patch.dict("os.environ", {"MIMO_API_KEY": "placeholder-for-tests"}, clear=True)
 class MimoStreamingTests(unittest.TestCase):
     def test_text_deltas_are_concatenated_and_reported(self) -> None:
         provider, completions = build_provider(
@@ -165,6 +167,7 @@ class MimoStreamingTests(unittest.TestCase):
         self.assertEqual(tools[0]["function"]["name"], "lookup")
 
 
+@patch.dict("os.environ", {"MIMO_API_KEY": "placeholder-for-tests"}, clear=True)
 class MimoStreamingRunnerTests(unittest.TestCase):
     """运行器与流式提供方的契约：文本增量成为 TokenChunk。"""
 

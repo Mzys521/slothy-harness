@@ -1,0 +1,300 @@
+.provider-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 20px 0 16px;
+}
+.provider-options > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 12px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+}
+.provider-options > button.chosen {
+  border-color: var(--color-action);
+  background: var(--color-selected);
+}
+.provider-options > button > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.provider-options strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.provider-options small {
+  font-size: 10px;
+  color: var(--color-secondary);
+}
+.provider-options svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--color-success-text);
+}
+.provider-monogram {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: 15px;
+  font-weight: 600;
+}
+.provider-form {
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.provider-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.provider-form-heading strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.provider-form-heading a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 11px;
+}
+.provider-form a {
+  color: var(--color-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.model-active-label {
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--color-success-text);
+  background: var(--color-success-surface);
+}
+.model-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.model-field > span:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.model-field small {
+  color: var(--color-secondary);
+  font-size: 10px;
+  font-weight: 400;
+}
+.model-field input,
+.model-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 39px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+.model-key-input {
+  display: flex;
+  position: relative;
+}
+.model-key-input input {
+  padding-right: 60px;
+}
+.model-key-input button {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-size: 11px;
+}
+.provider-endpoint {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 10px;
+  color: var(--color-secondary);
+}
+.provider-endpoint span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.provider-endpoint a {
+  flex: none;
+}
+.model-storage-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--color-secondary);
+  line-height: 1.6;
+}
+.model-storage-note svg {
+  flex: none;
+}
+.model-actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+.model-actions .primary-button {
+  margin-left: auto;
+}
+.model-actions .text-button {
+  font-size: 11px;
+}
+.model-feedback {
+  font-size: 12px;
+  color: var(--color-success-text);
+}
+.model-remove {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 15px;
+  flex-wrap: wrap;
+}
+.model-remove button {
+  font-size: 10px;
+  color: var(--color-secondary);
+}
+.model-remove small {
+  font-size: 10px;
+  color: var(--color-secondary);
+}
+.model-picker {
+  min-width: 0;
+  margin-left: auto;
+  max-width: 65%;
+}
+.model-trigger.composer-model {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
+}
+.model-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-trigger svg {
+  flex: none;
+}
+.model-trigger:not(:disabled):hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.model-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(300px, calc(100vw - 20px));
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 12px 35px var(--color-shadow);
+}
+.model-menu-list {
+  max-height: min(340px, 55vh);
+  overflow-y: auto;
+}
+.model-menu h3 {
+  color: var(--color-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 10px 10px 4px;
+}
+.model-menu-list button {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: left;
+}
+.model-menu-list button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-menu-list button svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--color-success-text);
+}
+.model-menu-list button[aria-checked='true'] {
+  background: var(--color-selected);
+}
+.model-menu-list button:hover {
+  background: var(--color-hover);
+}
+.model-menu-list p {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--color-secondary);
+}
+.model-menu-settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 10px;
+  margin-top: 7px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+}
+.model-menu-settings svg:last-child {
+  margin-left: auto;
+}
+@media (max-width: 750px) {
+  .provider-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .provider-form {
+    padding: 16px;
+  }
+}
+@media (max-width: 420px) {
+  .provider-form-heading {
+    flex-wrap: wrap;
+  }
+  .provider-form-heading a {
+    font-size: 10px;
+  }
+  .model-actions {
+    gap: 10px;
+  }
+}

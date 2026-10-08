@@ -17,6 +17,8 @@ from slothy.core.runtime import (
 from slothy.core.tools import ApprovalDecision, ApprovalRequest, ToolContext, ToolRegistry
 
 from .observation import RuntimeObservation
+from .memory_service import MemoryService
+from slothy.application.dto.inspection import context_inspection, counters
 
 
 @dataclass
@@ -42,6 +44,7 @@ class RuntimeService:
     def __init__(
         self, runner_factory: Callable[[], AgentRunner], registry: ToolRegistry,
         *, snapshot_store: SnapshotStore | None = None, event_capacity: int = 1000,
+        memory_service: MemoryService | None = None,
     ):
         if type(event_capacity) is not int or event_capacity < 1:
             raise ValueError("event_capacity must be a positive integer")
@@ -49,12 +52,19 @@ class RuntimeService:
         self._registry = registry
         self._snapshot_store = snapshot_store
         self._event_capacity = event_capacity
+        self._memory_service = memory_service
         self._entries: dict[str, _RunEntry] = {}
         self._lock = RLock()
 
     def create_run(self, user_input: str, *, actor_id: str) -> RunDTO:
         user_input = CreateRunRequest.parse({"user_input": user_input}).user_input
         runner = self._new_runner()
+        seed = getattr(runner.context, "set_recent_memories", None)
+        if self._memory_service is not None and callable(seed):
+            try:
+                seed(self._memory_service.recent_completed(actor_id=actor_id))
+            except Exception:
+                raise ApplicationError("memory_error", "无法读取已完成任务的历史记忆。") from None
         run = Run(uuid4().hex, runner.max_steps, policy=runner.policy)
         entry = _RunEntry(actor_id, runner, run, user_input)
         self._register(entry)
@@ -108,6 +118,24 @@ class RuntimeService:
         entry = self._entry(run_id, actor_id)
         with entry.lock:
             return self._view(entry)
+
+    def inspect_run(self, run_id: str, *, actor_id: str) -> dict:
+        """所属用户的展示投影；不导出消息、结果、工具日志或原始快照。"""
+        entry = self._entry(run_id, actor_id)
+        with entry.lock:
+            snapshot = entry.runner.latest_snapshot or entry.snapshot
+            data = snapshot.to_dict() if snapshot else {}
+            context = data.get("context", {})
+            report = getattr(entry.runner.context, "last_report", None)
+            state, report, config = context_inspection(context, report,
+                run_id=run_id, user_input=entry.user_input)
+            return deepcopy({
+                "run": self._view(entry).to_dict(), "task_state": state,
+                "context_report": report, "context_config": config,
+                "model": getattr(entry.runner.model, "model", None),
+                "usage": counters(data.get("model", {}).get("usage"),
+                                  ("total_tokens", "prompt_tokens", "completion_tokens")),
+            })
 
     def list_runs(self, *, actor_id: str, offset: int = 0, limit: int = 100) -> list[RunDTO]:
         with self._lock:
@@ -232,8 +260,10 @@ class RuntimeService:
                 entry.runtime = result.run
                 entry.snapshot, entry.approval = result.snapshot, result.approval
                 entry.output = result.output if result.run.status is RunStatus.COMPLETED else None
+            if result.run.status is RunStatus.COMPLETED and self._memory_service is not None:
+                self._remember_completed(entry)
         except Exception as error:
-            mapped = execution_error(error, run_id)
+            mapped = error if isinstance(error, ApplicationError) else execution_error(error, run_id)
             with entry.lock:
                 entry.error_code = mapped.dto.code
             raise mapped from error
@@ -245,6 +275,25 @@ class RuntimeService:
                 self._refresh(entry)
         with entry.lock:
             return self._view(entry)
+
+    def _remember_completed(self, entry):
+        # 完成事件早于完成快照提交，因此不能在 RunCompleted 监听器中写记忆。
+        # 只有 runner 返回后，最终回答与完成快照才已一起提交。
+        with entry.lock:
+            text = entry.user_input
+            if text is None and entry.snapshot is not None:
+                context = entry.snapshot.to_dict()["context"]
+                text = context.get("task_state", {}).get("goal")
+                if not text:
+                    history = context.get("history", context.get("active", context.get("messages", [])))
+                    text = next((m["content"] for m in history if m.get("role") == "user"), None)
+            view = self._view(entry)
+        try:
+            self._memory_service.remember_completed_run(view, text, actor_id=entry.owner_id)
+        except Exception:
+            # 已完成结果仍可查询；不能把独立记忆存储故障改写为 Runtime 失败。
+            raise ApplicationError("memory_error", "任务已完成，但历史记忆保存失败。结果已保留，请检查记忆存储。",
+                                   run_id=entry.runtime.run_id) from None
 
     def _on_event(self, entry: _RunEntry, event):
         with entry.lock:

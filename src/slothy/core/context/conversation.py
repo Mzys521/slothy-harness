@@ -45,6 +45,13 @@ class Conversation:
                     preview=record.preview,
                 )
             )
+        report = getattr(self._window, "last_report", None)
+        if isinstance(report, dict) and self._events is not None:
+            from slothy.core.events import Metric
+            for name, unit in (("input_tokens", "tokens"), ("memory_topk", "count"), ("summary_failures", "count")):
+                value = report.get(name)
+                if type(value) is int and value >= 0:
+                    self._events.emit(Metric(name="context." + name, value=value, unit=unit))
         return messages
 
     @property
@@ -58,6 +65,13 @@ class Conversation:
         if not self.can_snapshot:
             raise ContextError("注入的 Context 没有快照能力")
         return self._window.snapshot_state()
+
+    def bind_request(self, definitions, tool_context) -> dict[str, Any]:
+        """上下文自己的可选请求配置入口；旧 Context 不需要增加方法。"""
+        bind = getattr(self._window, "bind_request", None)
+        if callable(bind):
+            bind(definitions, tool_context)
+        return dict(getattr(self._window, "request_options", {}))
 
     def validate_pending_exchange(
         self, response: dict, index: int, results: list[str] | None = None,
@@ -74,7 +88,15 @@ class Conversation:
             validate = getattr(self._window, "validate_pending_exchange", None)
             if not callable(validate):
                 raise ContextError("自定义快照 Context 必须校验未完成工具往返")
-            validate(response, index)
+            if results is None:
+                validate(response, index)
+            else:
+                # 保持旧自定义实现的二参数方法，新增实现显式声明结果校验能力。
+                from .layered import LayeredContext
+                if isinstance(self._window, LayeredContext):
+                    validate(response, index, results)
+                else:
+                    validate(response, index)
             return
         tail = messages[-(index + 1):]
         assistant = {"role": "assistant", "content": response["text"]}

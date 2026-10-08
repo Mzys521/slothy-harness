@@ -1,0 +1,9 @@
+"""宿主的用户归属目录契约；不持有数据库或桌面能力。"""
+
+from typing import Protocol
+
+
+class WorkspaceCatalog(Protocol):
+    def put(self, owner_id: str, kind: str, item_id: str, value: dict) -> None: ...
+    def get(self, owner_id: str, kind: str, item_id: str) -> dict | None: ...
+    def list(self, owner_id: str, kind: str, *, limit: int = 100) -> list[dict]: ...

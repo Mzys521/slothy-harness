@@ -101,6 +101,15 @@ class ToolSession:
                 argument_keys=tuple(sorted(call.arguments)),
             )
         )
+        validate = getattr(self._executor, "validate", None)
+        invalid = validate(deepcopy(call)) if callable(validate) else None
+        if invalid is not None:
+            if not isinstance(invalid, ToolResult):
+                raise TypeError("工具参数校验必须返回 ToolResult 或 None")
+            if identity is not None:
+                self._journal.completed(identity, invalid)
+            self._emit_result_once(identity, call, invalid, 0.0)
+            return invalid
         blocked = check_tool_call(self._policy, call, context.run_id, self._events)
         if blocked is not None:
             result = ToolResult(output={"error": blocked}, is_error=True)

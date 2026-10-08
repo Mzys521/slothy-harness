@@ -41,6 +41,7 @@ class ModelSession:
         self._checkpoint = checkpoint
         self._attempts = 0
         self._elapsed_seconds = 0.0
+        self.request_options: dict[str, Any] = {}
 
     def snapshot_state(self) -> dict:
         return {
@@ -98,6 +99,7 @@ class ModelSession:
                 "tools": deepcopy(tools),
                 "on_chunk": on_chunk if self._events.enabled else None,
             }
+            options.update(self.request_options)
             if timeout is not None:
                 options["timeout"] = timeout
             try:

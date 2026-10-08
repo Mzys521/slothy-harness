@@ -1,11 +1,8 @@
-"""核心上下文契约。
+"""分层上下文与公开兼容契约。
 
-上下文模块负责一次 Run 内的对话上下文与上下文窗口：消息以提供方中立格式
-（``role`` 加 ``content``）流转，窗口按令牌预算裁剪最早的消息，并在裁剪发生时
-由上下文模块的 Conversation 发出 ``ContextCompressed`` 事件。
-
-正式 Context 提供原始历史与预算内窗口隔离、可替换计数器、截断和可注入摘要器。
-不包含会话持久化或记忆注入；摘要器的具体模型调用由外层实现。
+LayeredContext 负责 XML Prompt、预算、任务状态、外化 observation、滚动摘要
+与已授权记忆投影。旧类委托共享引擎并保留消息布局。Core 只定义存储、检索与
+模型能力接口；SDK、数据库、环境配置和调用隔离均由外层实现。
 """
 
 from .estimator import (
@@ -30,6 +27,16 @@ from .contracts import (
 )
 from .memory import InMemoryContext
 from .strategies import SummaryStrategy, TrimOldestStrategy
+from .config import ContextConfig
+from .layered import LayeredContext
+from .observations import (
+    MemoryScope, ObservationRecord, ObservationStore, InMemoryObservationStore,
+)
+from .task_state import TaskState
+from .retrieval import (
+    RetrievalConfig, HybridRetriever, MemoryDocument, SearchHit,
+    RetrievalChannel, Reranker, EmbeddingProvider, MemoryRepository,
+)
 
 __all__ = [
     "ASCII_CHARACTERS_PER_TOKEN",
@@ -49,4 +56,8 @@ __all__ = [
     "SummaryStrategy",
     "TrimOldestStrategy",
     "WindowBuild",
+    "ContextConfig", "LayeredContext", "MemoryScope", "ObservationRecord",
+    "ObservationStore", "InMemoryObservationStore", "TaskState",
+    "RetrievalConfig", "HybridRetriever", "MemoryDocument", "SearchHit",
+    "RetrievalChannel", "Reranker", "EmbeddingProvider", "MemoryRepository",
 ]

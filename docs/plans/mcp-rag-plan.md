@@ -2,6 +2,7 @@
 
 - 日期：2026-10-04
 - 状态：**规划，尚未实现**；本轮不新增 MCP/RAG 代码、依赖、空接口或数据库。
+- 2026-10-05 后续进展：Context 重构已实现受控 search_memory/get_result、SQLite/FTS5 记忆存储、混合检索、重排回退与 MemoryAPI；见 [ADR 0012](../decisions/0012-layered-context-and-controlled-memory.md)。本文其余内容保留原规划时点；MCP、文件导入作业、来源 manifest、引用定位和大型索引服务仍按后续阶段实施。
 - 约束：[架构](../architecture.md)、[开发指南](../Slothy-Development-Guide.md)、[初始化指南](../Project-Initialization-Guide.md)、[工具注册](../tool-registration.md)。
 - 前置：[Application API](../application-api.md)、[Context](../context-system.md)、[Policy](../policy-system.md)、[快照与重放安全](../runtime-recovery.md)。
 

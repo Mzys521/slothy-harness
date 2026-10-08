@@ -45,6 +45,11 @@ class RuntimeAPI:
             RunRequest.parse(payload).run_id, actor_id=self._actor_id,
         ))
 
+    def inspect_run(self, payload: dict) -> dict:
+        return self._invoke(lambda: self._service.inspect_run(
+            RunRequest.parse(payload).run_id, actor_id=self._actor_id,
+        ))
+
     def list_runs(self, payload: dict | None = None) -> dict:
         def operation():
             request = ListRunsRequest.parse({} if payload is None else payload)

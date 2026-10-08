@@ -4,7 +4,7 @@ from collections.abc import Callable, Sequence
 from typing import Any, Protocol, runtime_checkable
 
 from .estimator import TokenEstimator
-from .window import CompressionRecord, WindowBuild
+from .records import CompressionRecord, WindowBuild
 
 
 class ContextError(ValueError):

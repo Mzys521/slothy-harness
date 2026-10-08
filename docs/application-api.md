@@ -103,4 +103,46 @@ result = api.execute_run({"run_id": run_id})
 api.unsubscribe_events({"run_id": run_id, **subscription["data"]})
 ```
 
-验证位置：`tests/unit/test_application_runtime.py`、`tests/integration/test_application_assembly.py`。当前交付不包含 HTTP 服务、桌面桥接、设置存储或后台调度；这些适配层将调用现有 API，不能移入 main 或让 Presentation 直接操作 Core。
+验证位置：`tests/unit/test_application_runtime.py`、`tests/integration/test_application_assembly.py`。桌面桥接与回环 HTTP 已在外层接入，见[桌面说明](desktop-ui.md)；main 仍仅用于独立演示。后台调度及产品身份认证尚未实现。
+
+## 长期记忆原子接口
+
+`MemoryAPI(service, *, actor_id)` 沿用 `{ok, data}` / `{ok, error}` JSON 信封，宿主身份固定，payload 不允许提供 actor_id。`remember({id, text, entities?, source?, created_at?})` 写入一条受限且有来源的记忆，返回向量索引状态；`search({query, entities?})` 查询所属用户的记忆。写入和查询分别执行，不隐式创建 Run 或调用 Agent。
+
+`MemoryService(repository, *, embedding=None, retriever=None, config=None, invoker=None)` 仅依赖 Core。生产宿主注入 ContextComponents 的存储、检索器与时限隔离器；embedding 故障保留关键词/实体记录并返回 fallback。模型访问相同能力时必须走受控 search_memory 工具，不能取得仓储对象。Context 与受控执行器通过 Runner 工厂注入，RuntimeAPI 方法签名不变。见 [Context 迁移](context-migration.md)。
+
+`RuntimeService(..., memory_service=None)` 可由宿主注入上述服务。桌面启用后，创建新 Run 读取最近已完成的历史；执行或恢复正常返回 `COMPLETED` 并提交完成快照后，才以 `remember_completed_run` 整批保存原输入与最终回答。该方法是内部用例，不暴露新的模型工具或前端操作。失败、取消、暂停和待审批任务不保存。手工 `remember` 的来源不能为 `completed_run`，标识不能以 `run:` 开头。记忆存储失败返回 `memory_error`，已完成结果仍可由 `get_run` 查询；查询和重启不重复写历史。详见 [ADR 0015](decisions/0015-completed-run-memory.md)。
+
+## 桌面 Coding 配置与模式
+
+WorkspaceAPI 在既有 RuntimeAPI 外提供 `update_coding_settings`：字段为可选 `workspace_root`（旧接口绝对路径或 null）、`allow_edits`（bool）、`allowed_checks`（固定预设 ID 数组）、`check_timeout_seconds`（1–120 整数）。未知字段、无效目录、链接、系统根目录或非法检查被拒绝；客户端不能提交目录身份、宿主用户或执行对象。`workspace.status` 返回保存的设置、检查预设和两种模式的执行预算。
+
+`create_task` 可提供 `agent_mode=general|coding`，不提供时保持 general。提供 project_id 的 Coding 从所属项目读取目录与身份；项目未添加源文件夹返回 `coding_workspace_required`，目录变化返回 `coding_workspace_unavailable`。省略 project_id 时仍兼容旧全局目录。权限更新省略 workspace_root 时保留原目录和身份。新任务保存不可变的 coding_binding（目录、身份和权限），运行操作通过该绑定选择 RuntimeAPI，修改当前设置不会改变旧任务。`list_tools` 支持可选 agent_mode，并返回该模式/配置实际注册的工具；只读配置不注册修改工具，空检查允许列表不注册 run_checks。
+
+CodingService 的目录校验、Runtime 工厂和工具目录适配器由 desktop.py 注入；Application 不导入文件系统适配器。文件修改与项目检查复用现有单次批准/拒绝与独立 resume_run，不添加永久授权或命令直通 API。详见 [ADR 0016](decisions/0016-coding-agent-mode-and-controlled-tools.md)。
+
+## 桌面工作区与检查投影
+
+新增 `RuntimeAPI.inspect_run({run_id})`，返回显式投影 `run, task_state, context_report, context_config, model, usage`；旧 RunDTO 和方法格式不变。TaskState 的目标、计划、已完成、待办与实体来自当前快照，未知字段不导出；报告只导出层 token 数、预算、预定义降级动作和计数，未采样为 null。身份检查沿用 get_run，不能读取他人上下文。
+
+`WorkspaceAPI.request(method, payload)` 仅路由固定操作白名单，由 WorkspaceService 绑定本地用户。项目、任务归属与灵感通过注入 WorkspaceCatalog 保存；任务先创建，随后由前端单独执行。快速/进阶选择宿主预置运行服务，不允许注入任意模型、策略或执行器。产品组装、能力状态、持久化限制和完整方法表见 [桌面接口](desktop-ui.md)。
+
+## 项目源文件夹接口
+
+WorkspaceAPI 增加 `inspect_project_directory({workspace_root})`、`choose_project_directory({})`、`update_project({project_id, name?, workspace_root?, pinned?})`，`create_project` 接受 `{name, workspace_root?}`。新 UI 要求名称与源文件夹，纯名称兼容旧客户端。更新必须有至少一个字段，pinned 为严格 bool；名称至多 80 字符，路径至多 1000 字符。项目由宿主 actor_id 隔离，客户端不能提交身份或 owner。目录由注入的 Infrastructure 检查器验证，公开 DTO 只包含 id、name、pinned、workspace_root 与可识别 repository，不含 root_identity。
+
+目录选择仅为 Presentation 发起的 UI 操作，不注册为模型工具。浏览器返回 `{available: false, directory: null}`；桌面取消返回 `{available: true, directory: null}`。成功目录返回 `{workspace_root, repository}`，保存再次验证。错误为 invalid_project_directory、project_not_found 或 folder_picker_unavailable；目录选择器内部异常不进入响应。更新项目后，已有任务继续通过原 coding_binding 路由。详见 [ADR 0017](decisions/0017-work-modes-and-project-workspaces.md)。
+
+
+## 桌面模型设置 API
+
+| 操作 | 请求字段 | 成功结果 |
+| --- | --- | --- |
+| model_settings | 无 | providers、selection、storage_kind；不包含密钥 |
+| save_model_provider | provider_id；可选 api_key、endpoint_id、model | 更新的无密钥配置；保存并激活选择，省略密钥保留该区域现有值 |
+| select_model | provider_id、model；可选 endpoint_id | 激活已配置区域的已登记/预置文本模型 |
+| remove_model_key | provider_id；可选 endpoint_id | 移除该区域密钥；当前默认选择切到其他已配置区域/提供商或旧宿主默认 |
+| test_model_connection | provider_id；可选 endpoint_id、model | connected=true 与所测绑定；失败给出安全错误码 |
+| refresh_provider_models | provider_id；可选 endpoint_id、model | 更新无密钥模型目录；当前为 DeepSeek / Qwen 启用 |
+
+新增 create_task 可选 model_binding（严格为 provider_id、endpoint_id、model），绑定必须已配置且模型已登记；省略时捕获当前选择。任务记录含 model_binding 但不含凭据；Core Runtime API 不变。API 不接受 actor_id 或 Base URL，不将配置操作注册为工具。错误包括 invalid_provider、invalid_model_settings、invalid_api_key、model_not_configured、credential_storage_error、model_authentication_error、model_not_found、model_catalog_unsupported；SDK 异常文本不进入响应。详见 [模型配置](model-providers.md) 和 [ADR 0018](decisions/0018-model-providers-and-secure-credentials.md)。

@@ -70,6 +70,9 @@ class RunExecution:
                 user_input, window=runner.context, token_budget=runner.token_budget,
                 events=execution.observation.events,
             )
+            execution.model.request_options = execution.conversation.bind_request(
+                execution.tools.definitions, context,
+            )
             execution.enabled = execution.conversation.can_snapshot
             if runner.snapshot_store is not None and not execution.enabled:
                 raise SnapshotError("Context must support snapshots for this store")
@@ -104,6 +107,9 @@ class RunExecution:
             execution.conversation = restore(
                 data["context"], window=runner.context,
                 events=execution.observation.events,
+            )
+            execution.model.request_options = execution.conversation.bind_request(
+                execution.tools.definitions, context,
             )
         except (ContextError, TypeError, ValueError, KeyError) as error:
             raise SnapshotError("invalid Context snapshot or configuration") from error
